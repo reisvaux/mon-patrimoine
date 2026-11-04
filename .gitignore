@@ -1,0 +1,4 @@
+.verif-main.js
+__pycache__/
+donnees/
+*.json.local
