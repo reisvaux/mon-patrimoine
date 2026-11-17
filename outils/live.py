@@ -178,7 +178,7 @@ def appliquer_mouvement_reel(m, pos, cash):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--app", required=True)
-    ap.add_argument("--duel", required=True)
+    ap.add_argument("--duel", default="")
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
@@ -189,6 +189,9 @@ def main():
     agent = load(os.path.join(a.duel, "etat", "agent.json"))
     reel = load(os.path.join(a.duel, "etat", "reel.json"))
     cfg = load(os.path.join(a.duel, "etat", "config.json"))
+    duel_ok = bool(a.duel) and agent is not None and reel is not None and cfg is not None
+    if not duel_ok:  # duel supprimé : seuls les cours sont mis à jour
+        agent, reel, cfg = {}, {}, {}
     nav = sorted((load(f) for f in glob.glob(os.path.join(a.duel, "nav", "*.json"))), key=lambda x: x["date"])
     mouvs = []
     for f in sorted(glob.glob(os.path.join(a.duel, "mouvements", "*.json"))):
@@ -256,6 +259,12 @@ def main():
         hist.sort(key=lambda e: e["d"])
         upd["history"] = hist
     json.dump(upd, open(os.path.join(a.out, "portfolio-update.json"), "w"), ensure_ascii=False)
+
+    if not duel_ok:
+        print(json.dumps({"seance_en_cours": seance, "cours_mis_a_jour": changed, "cours_introuvables": missing,
+                          "titre": "Duel supprimé : cours mis à jour, aucune courbe écrite (n'écris que portfolio/main)",
+                          "total": upd.get("history", [{}])[-1].get("t")}, ensure_ascii=False))
+        return
 
     # ---------- 2. score du duel ----------
     frais = cfg.get("frais", {})
